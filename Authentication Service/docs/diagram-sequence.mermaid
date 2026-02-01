@@ -1,0 +1,73 @@
+sequenceDiagram
+    autonumber
+    participant Client as Client (App/Web)
+    participant Server as Backend API
+    participant Redis as Redis (Blacklist)
+    participant DB as Database (Refresh Tokens)
+
+    %% -------------------
+    %% FLOW 1: LOGIN
+    %% -------------------
+    rect rgb(230, 240, 255)
+    note over Client, DB: FLOW 1: Đăng nhập (Login)
+    Client->>Server: 1. POST /login (Username, Password)
+    Server->>DB: 2. Verify Credentials
+    DB-->>Server: OK (User Valid)
+    Server->>Server: 3. Tạo Access Token (15p) & Refresh Token (7 ngày)
+    Server->>DB: 4. Lưu Refresh Token (Hash) + Device Info
+    Server-->>Client: 5. Trả về Access Token + Refresh Token (HttpOnly Cookie)
+    end
+
+    %% -------------------
+    %% FLOW 2: AUTHENTICATION
+    %% -------------------
+    rect rgb(240, 255, 240)
+    note over Client, DB: FLOW 2: Gọi API (Authentication)
+    Client->>Server: 6. Request API + Bearer Access Token
+    Server->>Server: 7. Verify Signature & Expiration
+
+    alt Token Hợp lệ (Signature OK)
+        Server->>Redis: 8. Check: Token có trong Blacklist không?
+
+        alt Có trong Blacklist
+            Redis-->>Server: YES (Bị chặn)
+            Server-->>Client: 401 Unauthorized (Vui lòng login lại)
+        else Không có (Sạch)
+            Redis-->>Server: NO
+            Server-->>Client: 200 OK (Data Response)
+        end
+    else Token Hết hạn hoặc Sai
+        Server-->>Client: 401 Token Expired
+    end
+    end
+
+    %% -------------------
+    %% FLOW 3: REFRESH TOKEN
+    %% -------------------
+    rect rgb(255, 250, 230)
+    note over Client, DB: FLOW 3: Cấp lại Token (Refresh)
+    Client->>Server: 9. POST /refresh-token (Gửi Refresh Token cũ)
+    Server->>DB: 10. Check: Refresh Token này có trong DB & Active không?
+
+    alt Refresh Token Hợp lệ
+        DB-->>Server: OK (Found & Active)
+        Server->>DB: 11. Revoke (Xóa/Update) Refresh Token cũ
+        Server->>Server: 12. Tạo cặp Access + Refresh Token MỚI
+        Server->>DB: 13. Lưu Refresh Token MỚI vào DB
+        Server-->>Client: 14. Trả về Token MỚI
+    else Invalid / Revoked / Hack detected
+        DB-->>Server: Fail
+        Server-->>Client: 403 Forbidden (Logout user)
+    end
+    end
+
+    %% -------------------
+    %% FLOW 4: LOGOUT
+    %% -------------------
+    rect rgb(255, 230, 230)
+    note over Client, DB: FLOW 4: Đăng xuất (Logout)
+    Client->>Server: 15. POST /logout (Gửi Access + Refresh Token)
+    Server->>Redis: 16. Lưu Access Token vào Blacklist (TTL = thời gian còn lại)
+    Server->>DB: 17. Xóa/Revoke Refresh Token trong DB
+    Server-->>Client: 18. Clear Cookies / Response OK
+    end

@@ -1,0 +1,16 @@
+-- migrate:up
+CREATE TABLE users (
+    id BINARY(16) PRIMARY KEY,
+    email VARCHAR(250) NOT NULL UNIQUE,
+    firstname VARCHAR(100),
+    lastname VARCHAR(100),
+    avatar VARCHAR(2048),
+    password VARCHAR(500) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+
+-- migrate:down
+DROP TABLE IF EXISTS users
+

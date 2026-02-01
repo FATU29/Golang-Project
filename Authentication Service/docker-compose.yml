@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  database:
+    image: "mysql:9.0"
+    container_name: "db-go-authentication-service"
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: db-go-authentication
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - auth-network
+
+  cache:
+    image: "redis:7.2-alpine"
+    container_name: "cache-go-authentication-service"
+    ports:
+      - "6379:6379"
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis_data:/data
+    networks:
+      - auth-network
+
+networks:
+  auth-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  redis_data:

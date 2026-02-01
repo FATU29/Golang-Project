@@ -1,0 +1,27 @@
+graph TD
+    Client["Client (Browser/Mobile)"]
+
+    subgraph AppServer ["Application Server"]
+        Middleware["Auth Middleware"]
+        AuthService["Auth Service Logic"]
+    end
+
+    subgraph DataLayer ["Data Storage Layer"]
+        Redis[("Redis (Hot Storage)<br/>Blacklist Access Token")]
+        DB[("Database (Cold Storage)<br/>Refresh Tokens")]
+    end
+
+    %% Flow requests
+    Client -- "1. Request + Access Token" --> Middleware
+    Client -- "2. Login / Refresh" --> AuthService
+
+    %% Middleware interactions
+    Middleware -- "3. Check Blacklist" --> Redis
+
+    %% Auth Service interactions
+    AuthService -- "4. Logout: Set Blacklist" --> Redis
+    AuthService -- "5. Login/Refresh: Save/Check" --> DB
+    AuthService -- "6. Logout: Revoke" --> DB
+
+    style Redis fill:#ff9999,stroke:#333,stroke-width:2px
+    style DB fill:#99ccff,stroke:#333,stroke-width:2px
