@@ -23,5 +23,7 @@ func (g GormStrategy) Connect(cfg *config.Config) (*gorm.DB, error) {
 		return nil, err
 	}
 
+	fmt.Println("Connected to database")
+
 	return db, nil
 }

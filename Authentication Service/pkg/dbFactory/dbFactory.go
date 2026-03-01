@@ -9,9 +9,7 @@ func GetDatabase[T any](cfg *config.Config) IDatabase[T] {
 	dbType := cfg.DbType
 
 	if dbType == constant.MySql {
-		return &MySql[T]{
-			cfg: cfg,
-		}
+		return &MySql[T]{Cfg: cfg}
 	}
 	return nil
 }

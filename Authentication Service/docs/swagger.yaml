@@ -1,0 +1,630 @@
+basePath: /api
+definitions:
+  Authentication_Service_internal_dto_common.ApiErrorResponse:
+    properties:
+      code:
+        example: 400
+        type: integer
+      message:
+        example: Bad Request
+        type: string
+    type: object
+  Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_AccessTokenDto:
+    properties:
+      code:
+        example: 200
+        type: integer
+      data:
+        $ref: '#/definitions/Authentication_Service_internal_dto_response.AccessTokenDto'
+      message:
+        example: Success
+        type: string
+    type: object
+  Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_ChangePasswordResDto:
+    properties:
+      code:
+        example: 200
+        type: integer
+      data:
+        $ref: '#/definitions/Authentication_Service_internal_dto_response.ChangePasswordResDto'
+      message:
+        example: Success
+        type: string
+    type: object
+  Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_ForgotPasswordResDto:
+    properties:
+      code:
+        example: 200
+        type: integer
+      data:
+        $ref: '#/definitions/Authentication_Service_internal_dto_response.ForgotPasswordResDto'
+      message:
+        example: Success
+        type: string
+    type: object
+  Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_IntrospectResDto:
+    properties:
+      code:
+        example: 200
+        type: integer
+      data:
+        $ref: '#/definitions/Authentication_Service_internal_dto_response.IntrospectResDto'
+      message:
+        example: Success
+        type: string
+    type: object
+  Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_LogoutResDto:
+    properties:
+      code:
+        example: 200
+        type: integer
+      data:
+        $ref: '#/definitions/Authentication_Service_internal_dto_response.LogoutResDto'
+      message:
+        example: Success
+        type: string
+    type: object
+  Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_RegisterResDto:
+    properties:
+      code:
+        example: 200
+        type: integer
+      data:
+        $ref: '#/definitions/Authentication_Service_internal_dto_response.RegisterResDto'
+      message:
+        example: Success
+        type: string
+    type: object
+  Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_ResendOtpResDto:
+    properties:
+      code:
+        example: 200
+        type: integer
+      data:
+        $ref: '#/definitions/Authentication_Service_internal_dto_response.ResendOtpResDto'
+      message:
+        example: Success
+        type: string
+    type: object
+  Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_ResetPasswordResDto:
+    properties:
+      code:
+        example: 200
+        type: integer
+      data:
+        $ref: '#/definitions/Authentication_Service_internal_dto_response.ResetPasswordResDto'
+      message:
+        example: Success
+        type: string
+    type: object
+  Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_ValidateMailResDto:
+    properties:
+      code:
+        example: 200
+        type: integer
+      data:
+        $ref: '#/definitions/Authentication_Service_internal_dto_response.ValidateMailResDto'
+      message:
+        example: Success
+        type: string
+    type: object
+  Authentication_Service_internal_dto_request.ChangePasswordReqDto:
+    properties:
+      newPassword:
+        type: string
+      oldPassword:
+        type: string
+    required:
+    - newPassword
+    - oldPassword
+    type: object
+  Authentication_Service_internal_dto_request.ForgotPasswordReqDto:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
+  Authentication_Service_internal_dto_request.IntrospectReqDto:
+    properties:
+      token:
+        type: string
+      token_type_hint:
+        description: e.g. "access_token"
+        type: string
+    required:
+    - token
+    type: object
+  Authentication_Service_internal_dto_request.LoginReqDto:
+    properties:
+      device_info:
+        type: string
+      email:
+        type: string
+      ip_address:
+        type: string
+      password:
+        type: string
+    type: object
+  Authentication_Service_internal_dto_request.LogoutReqDto:
+    properties:
+      accessToken:
+        type: string
+      refreshToken:
+        type: string
+    required:
+    - refreshToken
+    type: object
+  Authentication_Service_internal_dto_request.RegisterReqDto:
+    properties:
+      confirmPassword:
+        type: string
+      email:
+        type: string
+      firstname:
+        type: string
+      lastname:
+        type: string
+      password:
+        type: string
+    required:
+    - confirmPassword
+    - email
+    - password
+    type: object
+  Authentication_Service_internal_dto_request.ResendOtpReqDto:
+    properties:
+      email:
+        type: string
+    required:
+    - email
+    type: object
+  Authentication_Service_internal_dto_request.ResetPasswordReqDto:
+    properties:
+      email:
+        type: string
+      newPassword:
+        type: string
+      otp:
+        type: string
+    required:
+    - email
+    - newPassword
+    - otp
+    type: object
+  Authentication_Service_internal_dto_request.ValidateMailReqDto:
+    properties:
+      email:
+        type: string
+      otp:
+        type: string
+    required:
+    - email
+    - otp
+    type: object
+  Authentication_Service_internal_dto_response.AccessTokenDto:
+    properties:
+      accessToken:
+        type: string
+    type: object
+  Authentication_Service_internal_dto_response.ChangePasswordResDto:
+    properties:
+      success:
+        type: boolean
+    type: object
+  Authentication_Service_internal_dto_response.ForgotPasswordResDto:
+    properties:
+      sent:
+        type: boolean
+    type: object
+  Authentication_Service_internal_dto_response.IntrospectResDto:
+    properties:
+      active:
+        type: boolean
+      email:
+        description: when active
+        type: string
+      exp:
+        description: expiry unix seconds
+        type: integer
+      iat:
+        description: issued at unix seconds
+        type: integer
+      sub:
+        description: user id when active
+        type: string
+    type: object
+  Authentication_Service_internal_dto_response.LogoutResDto:
+    properties:
+      isLogout:
+        type: boolean
+    type: object
+  Authentication_Service_internal_dto_response.RegisterResDto:
+    properties:
+      avatar:
+        type: string
+      email:
+        type: string
+      firstname:
+        type: string
+      id:
+        type: string
+      lastname:
+        type: string
+    type: object
+  Authentication_Service_internal_dto_response.ResendOtpResDto:
+    properties:
+      isResent:
+        type: boolean
+    type: object
+  Authentication_Service_internal_dto_response.ResetPasswordResDto:
+    properties:
+      success:
+        type: boolean
+    type: object
+  Authentication_Service_internal_dto_response.ValidateMailResDto:
+    properties:
+      valid:
+        type: boolean
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: API for user registration, login, logout, email validation, OTP, and
+    password flows.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Authentication Service API
+  version: "1.0"
+paths:
+  /auth/change-password:
+    post:
+      consumes:
+      - application/json
+      description: Change password for the authenticated user. Requires Bearer token.
+      parameters:
+      - description: Bearer {accessToken}
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Old and new password
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/Authentication_Service_internal_dto_request.ChangePasswordReqDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_ChangePasswordResDto'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Change password
+      tags:
+      - auth
+  /auth/forgot-password:
+    post:
+      consumes:
+      - application/json
+      description: Request a password reset OTP to be sent to the given email.
+      parameters:
+      - description: Email
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/Authentication_Service_internal_dto_request.ForgotPasswordReqDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_ForgotPasswordResDto'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse'
+      summary: Forgot password
+      tags:
+      - auth
+  /auth/google:
+    get:
+      description: Redirects the user to Google's OAuth2 consent page. Browser only;
+        follow redirect to sign in with Google.
+      produces:
+      - application/json
+      responses:
+        "307":
+          description: Redirect to Google
+        "500":
+          description: Failed to set SSO state
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse'
+        "503":
+          description: Google SSO not configured
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse'
+      summary: Start Google SSO
+      tags:
+      - auth
+  /auth/google/callback:
+    get:
+      description: OAuth2 callback; validates state, exchanges code with Google, finds
+        or creates user, returns access and refresh tokens.
+      parameters:
+      - description: State from redirect (CSRF)
+        in: query
+        name: state
+        required: true
+        type: string
+      - description: Authorization code from Google
+        in: query
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_AccessTokenDto'
+        "400":
+          description: Missing or invalid state/code
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse'
+      summary: Google SSO callback
+      tags:
+      - auth
+  /auth/introspect:
+    post:
+      consumes:
+      - application/json
+      description: Validate an access token and return its claims (RFC 7662 style).
+        Returns active=true with sub, exp, iat, email when valid; active=false otherwise.
+      parameters:
+      - description: Token to introspect
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/Authentication_Service_internal_dto_request.IntrospectReqDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_IntrospectResDto'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse'
+      summary: Introspect token
+      tags:
+      - auth
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Login with email and password. Returns access token and sets refresh
+        token in HTTP-only cookie.
+      parameters:
+      - description: Email and password
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/Authentication_Service_internal_dto_request.LoginReqDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_AccessTokenDto'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse'
+      summary: Login
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Logout and invalidate refresh token. Clears refresh token cookie.
+      parameters:
+      - description: Refresh token (and optional access token)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/Authentication_Service_internal_dto_request.LogoutReqDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_LogoutResDto'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse'
+      summary: Logout
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user with email and password.
+      parameters:
+      - description: Registration payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/Authentication_Service_internal_dto_request.RegisterReqDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_RegisterResDto'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse'
+      summary: Register
+      tags:
+      - auth
+  /auth/resend-otp:
+    post:
+      consumes:
+      - application/json
+      description: Resend OTP to the given email address.
+      parameters:
+      - description: Email
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/Authentication_Service_internal_dto_request.ResendOtpReqDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_ResendOtpResDto'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse'
+      summary: Resend OTP
+      tags:
+      - auth
+  /auth/reset-password:
+    post:
+      consumes:
+      - application/json
+      description: Reset password using email, OTP, and new password.
+      parameters:
+      - description: Email, OTP, new password
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/Authentication_Service_internal_dto_request.ResetPasswordReqDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_ResetPasswordResDto'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse'
+      summary: Reset password
+      tags:
+      - auth
+  /auth/validate-mail:
+    post:
+      consumes:
+      - application/json
+      description: Validate user email using the OTP sent to the email.
+      parameters:
+      - description: Email and OTP
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/Authentication_Service_internal_dto_request.ValidateMailReqDto'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_ValidateMailResDto'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse'
+      summary: Validate email with OTP
+      tags:
+      - auth
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

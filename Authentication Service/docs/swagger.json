@@ -1,0 +1,945 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "description": "API for user registration, login, logout, email validation, OTP, and password flows.",
+        "title": "Authentication Service API",
+        "termsOfService": "http://swagger.io/terms/",
+        "contact": {
+            "name": "API Support",
+            "url": "http://www.swagger.io/support",
+            "email": "support@swagger.io"
+        },
+        "license": {
+            "name": "Apache 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+        },
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/api",
+    "paths": {
+        "/auth/change-password": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Change password for the authenticated user. Requires Bearer token.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Change password",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer {accessToken}",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Old and new password",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_request.ChangePasswordReqDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_ChangePasswordResDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/forgot-password": {
+            "post": {
+                "description": "Request a password reset OTP to be sent to the given email.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Forgot password",
+                "parameters": [
+                    {
+                        "description": "Email",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_request.ForgotPasswordReqDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_ForgotPasswordResDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/google": {
+            "get": {
+                "description": "Redirects the user to Google's OAuth2 consent page. Browser only; follow redirect to sign in with Google.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Start Google SSO",
+                "responses": {
+                    "307": {
+                        "description": "Redirect to Google"
+                    },
+                    "500": {
+                        "description": "Failed to set SSO state",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse"
+                        }
+                    },
+                    "503": {
+                        "description": "Google SSO not configured",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/google/callback": {
+            "get": {
+                "description": "OAuth2 callback: validates state, exchanges code with Google, finds or creates user, returns access and refresh tokens.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Google SSO callback",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "State from redirect (CSRF)",
+                        "name": "state",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Authorization code from Google",
+                        "name": "code",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_AccessTokenDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Missing or invalid state/code",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/introspect": {
+            "post": {
+                "description": "Validate an access token and return its claims (RFC 7662 style). Returns active=true with sub, exp, iat, email when valid; active=false otherwise.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Introspect token",
+                "parameters": [
+                    {
+                        "description": "Token to introspect",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_request.IntrospectReqDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_IntrospectResDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/login": {
+            "post": {
+                "description": "Login with email and password. Returns access token and sets refresh token in HTTP-only cookie.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Login",
+                "parameters": [
+                    {
+                        "description": "Email and password",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_request.LoginReqDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_AccessTokenDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/logout": {
+            "post": {
+                "description": "Logout and invalidate refresh token. Clears refresh token cookie.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Logout",
+                "parameters": [
+                    {
+                        "description": "Refresh token (and optional access token)",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_request.LogoutReqDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_LogoutResDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/register": {
+            "post": {
+                "description": "Register a new user with email and password.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Register",
+                "parameters": [
+                    {
+                        "description": "Registration payload",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_request.RegisterReqDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_RegisterResDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/resend-otp": {
+            "post": {
+                "description": "Resend OTP to the given email address.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Resend OTP",
+                "parameters": [
+                    {
+                        "description": "Email",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_request.ResendOtpReqDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_ResendOtpResDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/reset-password": {
+            "post": {
+                "description": "Reset password using email, OTP, and new password.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Reset password",
+                "parameters": [
+                    {
+                        "description": "Email, OTP, new password",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_request.ResetPasswordReqDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_ResetPasswordResDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/validate-mail": {
+            "post": {
+                "description": "Validate user email using the OTP sent to the email.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Validate email with OTP",
+                "parameters": [
+                    {
+                        "description": "Email and OTP",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_request.ValidateMailReqDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_ValidateMailResDto"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/Authentication_Service_internal_dto_common.ApiErrorResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "Authentication_Service_internal_dto_common.ApiErrorResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer",
+                    "example": 400
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Bad Request"
+                }
+            }
+        },
+        "Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_AccessTokenDto": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer",
+                    "example": 200
+                },
+                "data": {
+                    "$ref": "#/definitions/Authentication_Service_internal_dto_response.AccessTokenDto"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Success"
+                }
+            }
+        },
+        "Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_ChangePasswordResDto": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer",
+                    "example": 200
+                },
+                "data": {
+                    "$ref": "#/definitions/Authentication_Service_internal_dto_response.ChangePasswordResDto"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Success"
+                }
+            }
+        },
+        "Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_ForgotPasswordResDto": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer",
+                    "example": 200
+                },
+                "data": {
+                    "$ref": "#/definitions/Authentication_Service_internal_dto_response.ForgotPasswordResDto"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Success"
+                }
+            }
+        },
+        "Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_IntrospectResDto": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer",
+                    "example": 200
+                },
+                "data": {
+                    "$ref": "#/definitions/Authentication_Service_internal_dto_response.IntrospectResDto"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Success"
+                }
+            }
+        },
+        "Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_LogoutResDto": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer",
+                    "example": 200
+                },
+                "data": {
+                    "$ref": "#/definitions/Authentication_Service_internal_dto_response.LogoutResDto"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Success"
+                }
+            }
+        },
+        "Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_RegisterResDto": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer",
+                    "example": 200
+                },
+                "data": {
+                    "$ref": "#/definitions/Authentication_Service_internal_dto_response.RegisterResDto"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Success"
+                }
+            }
+        },
+        "Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_ResendOtpResDto": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer",
+                    "example": 200
+                },
+                "data": {
+                    "$ref": "#/definitions/Authentication_Service_internal_dto_response.ResendOtpResDto"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Success"
+                }
+            }
+        },
+        "Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_ResetPasswordResDto": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer",
+                    "example": 200
+                },
+                "data": {
+                    "$ref": "#/definitions/Authentication_Service_internal_dto_response.ResetPasswordResDto"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Success"
+                }
+            }
+        },
+        "Authentication_Service_internal_dto_common.ApiResponse-Authentication_Service_internal_dto_response_ValidateMailResDto": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer",
+                    "example": 200
+                },
+                "data": {
+                    "$ref": "#/definitions/Authentication_Service_internal_dto_response.ValidateMailResDto"
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Success"
+                }
+            }
+        },
+        "Authentication_Service_internal_dto_request.ChangePasswordReqDto": {
+            "type": "object",
+            "required": [
+                "newPassword",
+                "oldPassword"
+            ],
+            "properties": {
+                "newPassword": {
+                    "type": "string"
+                },
+                "oldPassword": {
+                    "type": "string"
+                }
+            }
+        },
+        "Authentication_Service_internal_dto_request.ForgotPasswordReqDto": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
+        "Authentication_Service_internal_dto_request.IntrospectReqDto": {
+            "type": "object",
+            "required": [
+                "token"
+            ],
+            "properties": {
+                "token": {
+                    "type": "string"
+                },
+                "token_type_hint": {
+                    "description": "e.g. \"access_token\"",
+                    "type": "string"
+                }
+            }
+        },
+        "Authentication_Service_internal_dto_request.LoginReqDto": {
+            "type": "object",
+            "properties": {
+                "device_info": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "ip_address": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "Authentication_Service_internal_dto_request.LogoutReqDto": {
+            "type": "object",
+            "required": [
+                "refreshToken"
+            ],
+            "properties": {
+                "accessToken": {
+                    "type": "string"
+                },
+                "refreshToken": {
+                    "type": "string"
+                }
+            }
+        },
+        "Authentication_Service_internal_dto_request.RegisterReqDto": {
+            "type": "object",
+            "required": [
+                "confirmPassword",
+                "email",
+                "password"
+            ],
+            "properties": {
+                "confirmPassword": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "firstname": {
+                    "type": "string"
+                },
+                "lastname": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "Authentication_Service_internal_dto_request.ResendOtpReqDto": {
+            "type": "object",
+            "required": [
+                "email"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
+        "Authentication_Service_internal_dto_request.ResetPasswordReqDto": {
+            "type": "object",
+            "required": [
+                "email",
+                "newPassword",
+                "otp"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "newPassword": {
+                    "type": "string"
+                },
+                "otp": {
+                    "type": "string"
+                }
+            }
+        },
+        "Authentication_Service_internal_dto_request.ValidateMailReqDto": {
+            "type": "object",
+            "required": [
+                "email",
+                "otp"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "otp": {
+                    "type": "string"
+                }
+            }
+        },
+        "Authentication_Service_internal_dto_response.AccessTokenDto": {
+            "type": "object",
+            "properties": {
+                "accessToken": {
+                    "type": "string"
+                }
+            }
+        },
+        "Authentication_Service_internal_dto_response.ChangePasswordResDto": {
+            "type": "object",
+            "properties": {
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "Authentication_Service_internal_dto_response.ForgotPasswordResDto": {
+            "type": "object",
+            "properties": {
+                "sent": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "Authentication_Service_internal_dto_response.IntrospectResDto": {
+            "type": "object",
+            "properties": {
+                "active": {
+                    "type": "boolean"
+                },
+                "email": {
+                    "description": "when active",
+                    "type": "string"
+                },
+                "exp": {
+                    "description": "expiry unix seconds",
+                    "type": "integer"
+                },
+                "iat": {
+                    "description": "issued at unix seconds",
+                    "type": "integer"
+                },
+                "sub": {
+                    "description": "user id when active",
+                    "type": "string"
+                }
+            }
+        },
+        "Authentication_Service_internal_dto_response.LogoutResDto": {
+            "type": "object",
+            "properties": {
+                "isLogout": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "Authentication_Service_internal_dto_response.RegisterResDto": {
+            "type": "object",
+            "properties": {
+                "avatar": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "firstname": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "lastname": {
+                    "type": "string"
+                }
+            }
+        },
+        "Authentication_Service_internal_dto_response.ResendOtpResDto": {
+            "type": "object",
+            "properties": {
+                "isResent": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "Authentication_Service_internal_dto_response.ResetPasswordResDto": {
+            "type": "object",
+            "properties": {
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "Authentication_Service_internal_dto_response.ValidateMailResDto": {
+            "type": "object",
+            "properties": {
+                "valid": {
+                    "type": "boolean"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        }
+    }
+}

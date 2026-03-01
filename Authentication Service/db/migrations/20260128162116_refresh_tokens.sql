@@ -1,7 +1,7 @@
 -- migrate:up
 CREATE TABLE refresh_tokens (
-    id SERIAL PRIMARY KEY,
-    user_id BINARY(16) NOT NULL,
+    id CHAR(36) PRIMARY KEY,
+    user_id CHAR(36) NOT NULL,
     token_hash VARCHAR(255) NOT NULL UNIQUE,
     device_info VARCHAR(255),
     ip_address VARCHAR(45),
@@ -14,6 +14,7 @@ CREATE TABLE refresh_tokens (
 );
 
 CREATE INDEX idx_refresh_tokens_token_hash ON refresh_tokens(token_hash);
+CREATE INDEX idx_refresh_tokens_user_id ON refresh_tokens(user_id);
 
 -- migrate:down
 DROP TABLE IF EXISTS refresh_tokens;

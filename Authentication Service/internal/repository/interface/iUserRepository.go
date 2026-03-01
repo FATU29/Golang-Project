@@ -3,6 +3,8 @@ package _interface
 import "Authentication_Service/internal/model"
 
 type IUserRepository interface {
-	getById(id string) (*model.User, error)
-	create(user *model.User) (*model.User, error)
+	GetById(id string) (*model.User, error)
+	Create(user *model.User) (*model.User, error)
+	FindByEmail(email string) (*model.User, error)
+	Update(user *model.User) (*model.User, error)
 }

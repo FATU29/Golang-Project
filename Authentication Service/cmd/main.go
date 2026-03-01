@@ -1,10 +1,28 @@
+// @title           Authentication Service API
+// @version         1.0
+// @description     API for user registration, login, logout, email validation, OTP, and password flows.
+// @termsOfService  http://swagger.io/terms/
+
+// @contact.name   API Support
+// @contact.url    http://www.swagger.io/support
+// @contact.email  support@swagger.io
+
+// @license.name  Apache 2.0
+// @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host      localhost:8080
+// @BasePath  /api
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+
 package main
 
 import (
 	"Authentication_Service/internal/config"
-	"Authentication_Service/internal/handler"
 	"Authentication_Service/pkg/dbFactory"
-	"fmt"
+	"Authentication_Service/pkg/redis"
 	"log"
 
 	"github.com/gin-gonic/gin"
@@ -12,33 +30,34 @@ import (
 )
 
 func main() {
-	r := gin.Default()
+	// Use gin.New() instead of gin.Default() to avoid duplicate middleware
+	// gin.Default() includes Logger and Recovery which we add explicitly in app.Run()
+	r := gin.New()
 
-	cfg, err := config.LoadConfig()
-	if err != nil {
-		log.Fatal(err)
-	}
+	cfg := config.LoadConfig()
 
 	db := dbFactory.GetDatabase[*gorm.DB](cfg)
 	if db == nil {
 		log.Fatal("Database not found")
 	}
 
-	_, errCn := db.Connect(dbFactory.GormStrategy{})
+	dbInstance, errCn := db.Connect(dbFactory.GormStrategy{})
 
 	if errCn != nil {
-		log.Fatal(err)
+		log.Fatal(errCn)
 	}
 
-	r.Use(gin.Logger())
-	r.Use(gin.Recovery())
+	redisInstance, errRedis := redis.InitRedis(cfg)
+	_ = redisInstance
 
-	handler.DefineRouters(r)
+	if errRedis != nil {
+		log.Fatal("Failed to connect to Redis:", errRedis)
+	}
 
-	server := fmt.Sprintf("%s:%s", cfg.Host, cfg.Port)
+	app := NewApp(r, redisInstance, dbInstance, cfg)
+	errRunApp := app.Run()
 
-	errRun := r.Run(server)
-	if errRun != nil {
-		return
+	if errRunApp != nil {
+		log.Fatal("Failed to run the app:", errRunApp)
 	}
 }

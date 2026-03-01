@@ -7,11 +7,11 @@ type IDatabase[T any] interface {
 }
 
 type MySql[T any] struct {
-	cfg *config.Config
+	Cfg *config.Config
 }
 
 func (m MySql[T]) Connect(orm IOrm[T]) (T, error) {
-	db, err := orm.Connect(m.cfg)
+	db, err := orm.Connect(m.Cfg)
 	if err != nil {
 		var zero T
 		return zero, err

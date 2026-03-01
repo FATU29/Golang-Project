@@ -20,25 +20,47 @@ type Config struct {
 	Port      string
 	Host      string
 	JwtSecret string
+
+	BrevoApiKey       string
+	SenderName        string
+	SenderMail        string
+	BrevoEndpointMail string
+
+	RedisHost     string
+	RedisPassword string
+
+	GoogleClientID     string
+	GoogleClientSecret string
+	GoogleRedirectURL  string
 }
 
-func LoadConfig() (*Config, error) {
+func LoadConfig() *Config {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
 
 	return &Config{
-		DbUrl:      os.Getenv("DATABASE_URL"),
-		DbHost:     os.Getenv("DB_HOST"),
-		DbUser:     os.Getenv("DB_USER"),
-		DbPassword: os.Getenv("DB_PASSWORD"),
-		DbPort:     os.Getenv("DB_PORT"),
-		DbName:     os.Getenv("DB_NAME"),
-		DbType:     os.Getenv("DB_TYPE"),
-		Port:       os.Getenv("PORT"),
-		JwtSecret:  os.Getenv("JWT_SECRET"),
-	}, nil
+		DbUrl:             os.Getenv("DATABASE_URL"),
+		DbHost:            os.Getenv("DB_HOST"),
+		DbUser:            os.Getenv("DB_USER"),
+		DbPassword:        os.Getenv("DB_PASSWORD"),
+		DbPort:            os.Getenv("DB_PORT"),
+		DbName:            os.Getenv("DB_NAME"),
+		DbType:            os.Getenv("DB_TYPE"),
+		Port:              os.Getenv("PORT"),
+		JwtSecret:         os.Getenv("JWT_SECRET"),
+		Host:              os.Getenv("HOST"),
+		BrevoEndpointMail: os.Getenv("BREVO_SENDMAIL_ENDPOINT"),
+		BrevoApiKey:       os.Getenv("BREVO_API_KEY"),
+		SenderName:        os.Getenv("SENDER_NAME"),
+		SenderMail:        os.Getenv("SENDER_MAIL"),
+		RedisHost:         os.Getenv("REDIS_HOST"),
+		RedisPassword:     os.Getenv("REDIS_PASSWORD"),
+		GoogleClientID:    os.Getenv("GOOGLE_CLIENT_ID"),
+		GoogleClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
+		GoogleRedirectURL: os.Getenv("GOOGLE_REDIRECT_URL"),
+	}
 }
 
 func (c *Config) GetDbUrl() string {

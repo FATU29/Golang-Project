@@ -1,8 +1,9 @@
 package request
 
 type RegisterResDto struct {
-	Firstname string  `json:"firstname"`
-	Lastname  string  `json:"lastname"`
-	Email     string  `json:"email"`
+	Id        string  `json:"id"`
+	Firstname *string `json:"firstname"`
+	Lastname  *string `json:"lastname"`
 	Avatar    *string `json:"avatar"`
+	Email     string  `json:"email"`
 }
