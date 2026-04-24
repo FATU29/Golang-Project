@@ -180,7 +180,7 @@ func TestGoogleSSOCallbackController_InvalidState(t *testing.T) {
 	c.Request = httptest.NewRequest(http.MethodGet, "/auth/google/callback?state=bad&code=code123", nil)
 
 	mock := &mockAuthServiceSSO{
-		validateStateOk: false,
+		validateStateOk:  false,
 		validateStateErr: errors.New("expired"),
 	}
 	ctrl := &AuthenticationController{AuthenticationService: mock}
@@ -242,14 +242,22 @@ func TestGoogleSSOCallbackController_Success(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", w.Code)
 	}
-	var body common.ApiResponse[*response.LoginResDto]
+	var body common.ApiResponse[*response.AccessTokenDto]
 	if err := json.NewDecoder(w.Body).Decode(&body); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	if body.Data == nil || body.Data.AccessToken != mock.googleSSORes.AccessToken || body.Data.RefreshToken != mock.googleSSORes.RefreshToken {
-		t.Fatalf("expected tokens in body, got %+v", body.Data)
+	if body.Data == nil || body.Data.AccessToken != mock.googleSSORes.AccessToken {
+		t.Fatalf("expected access token in body, got %+v", body.Data)
 	}
 	if body.Message != "Signed in with Google" {
 		t.Fatalf("expected success message, got %s", body.Message)
+	}
+
+	setCookie := w.Header().Get("Set-Cookie")
+	if !strings.Contains(setCookie, "refreshToken="+mock.googleSSORes.RefreshToken) {
+		t.Fatalf("expected refresh token cookie to be set, got %s", setCookie)
+	}
+	if !strings.Contains(setCookie, "HttpOnly") {
+		t.Fatalf("expected refresh token cookie to be HttpOnly, got %s", setCookie)
 	}
 }

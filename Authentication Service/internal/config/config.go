@@ -1,8 +1,10 @@
 package config
 
 import (
+	"Authentication_Service/internal/utils"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
@@ -29,9 +31,15 @@ type Config struct {
 	RedisHost     string
 	RedisPassword string
 
+	KafkaBrokers               string
+	KafkaRegisterTopic         string
+	KafkaRegisterConsumerGroup string
+	KafkaRegisterEnabled       bool
+
 	GoogleClientID     string
 	GoogleClientSecret string
 	GoogleRedirectURL  string
+	FrontendURL        string
 }
 
 func LoadConfig() *Config {
@@ -41,25 +49,30 @@ func LoadConfig() *Config {
 	}
 
 	return &Config{
-		DbUrl:             os.Getenv("DATABASE_URL"),
-		DbHost:            os.Getenv("DB_HOST"),
-		DbUser:            os.Getenv("DB_USER"),
-		DbPassword:        os.Getenv("DB_PASSWORD"),
-		DbPort:            os.Getenv("DB_PORT"),
-		DbName:            os.Getenv("DB_NAME"),
-		DbType:            os.Getenv("DB_TYPE"),
-		Port:              os.Getenv("PORT"),
-		JwtSecret:         os.Getenv("JWT_SECRET"),
-		Host:              os.Getenv("HOST"),
-		BrevoEndpointMail: os.Getenv("BREVO_SENDMAIL_ENDPOINT"),
-		BrevoApiKey:       os.Getenv("BREVO_API_KEY"),
-		SenderName:        os.Getenv("SENDER_NAME"),
-		SenderMail:        os.Getenv("SENDER_MAIL"),
-		RedisHost:         os.Getenv("REDIS_HOST"),
-		RedisPassword:     os.Getenv("REDIS_PASSWORD"),
-		GoogleClientID:    os.Getenv("GOOGLE_CLIENT_ID"),
-		GoogleClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
-		GoogleRedirectURL: os.Getenv("GOOGLE_REDIRECT_URL"),
+		DbUrl:                      os.Getenv("DATABASE_URL"),
+		DbHost:                     os.Getenv("DB_HOST"),
+		DbUser:                     os.Getenv("DB_USER"),
+		DbPassword:                 os.Getenv("DB_PASSWORD"),
+		DbPort:                     os.Getenv("DB_PORT"),
+		DbName:                     os.Getenv("DB_NAME"),
+		DbType:                     os.Getenv("DB_TYPE"),
+		Port:                       os.Getenv("PORT"),
+		JwtSecret:                  os.Getenv("JWT_SECRET"),
+		Host:                       os.Getenv("HOST"),
+		BrevoEndpointMail:          os.Getenv("BREVO_SENDMAIL_ENDPOINT"),
+		BrevoApiKey:                os.Getenv("BREVO_API_KEY"),
+		SenderName:                 os.Getenv("SENDER_NAME"),
+		SenderMail:                 os.Getenv("SENDER_MAIL"),
+		RedisHost:                  os.Getenv("REDIS_HOST"),
+		RedisPassword:              os.Getenv("REDIS_PASSWORD"),
+		KafkaBrokers:               os.Getenv("KAFKA_BROKERS"),
+		KafkaRegisterTopic:         os.Getenv("KAFKA_REGISTER_TOPIC"),
+		KafkaRegisterConsumerGroup: os.Getenv("KAFKA_REGISTER_CONSUMER_GROUP"),
+		KafkaRegisterEnabled:       strings.EqualFold(os.Getenv("KAFKA_REGISTER_ENABLED"), "true"),
+		GoogleClientID:             os.Getenv("GOOGLE_CLIENT_ID"),
+		GoogleClientSecret:         os.Getenv("GOOGLE_CLIENT_SECRET"),
+		GoogleRedirectURL:          os.Getenv("GOOGLE_REDIRECT_URL"),
+		FrontendURL:                utils.GetEnvOrDefault("FRONTEND_URL", "http://localhost:3000"),
 	}
 }
 

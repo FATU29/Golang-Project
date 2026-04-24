@@ -8,10 +8,14 @@ import (
 	"Authentication_Service/internal/repository"
 	"Authentication_Service/internal/service"
 	"Authentication_Service/pkg/email"
+	emailModel "Authentication_Service/pkg/email/model"
 	"Authentication_Service/pkg/google"
+	"Authentication_Service/pkg/kafka"
+	"context"
 
 	_ "Authentication_Service/docs"
 
+	"github.com/bytedance/gopkg/util/logger"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -74,6 +78,42 @@ func (instance *InitialInstance) DefineRouter() {
 		Email: &email.BrevoEmail{
 			Cfg: instance.App.Cfg,
 		},
+		Cfg: instance.App.Cfg,
+	}
+
+	if instance.App.Cfg.KafkaRegisterEnabled {
+		brokers := kafka.ParseBrokers(instance.App.Cfg.KafkaBrokers)
+		if len(brokers) == 0 {
+			logger.Warn("KAFKA_REGISTER_ENABLED=true but KAFKA_BROKERS is empty. Fallback to sync email sending.")
+		} else {
+			topic := instance.App.Cfg.KafkaRegisterTopic
+			if topic == "" {
+				topic = "auth.register.otp"
+			}
+
+			groupID := instance.App.Cfg.KafkaRegisterConsumerGroup
+			if groupID == "" {
+				groupID = "auth-service-register-email-worker"
+			}
+
+			authService.RegisterEventProducer = kafka.NewProducer(brokers, topic)
+
+			consumer := kafka.NewRegisterEventConsumer(
+				brokers,
+				topic,
+				groupID,
+				func(ctx context.Context, event kafka.RegisterOTPEvent) error {
+					to := emailModel.To{
+						Email: event.Email,
+						Name:  event.RecipientName(),
+					}
+					return authController.Email.SendEmail(to, "Your OTP Code", "Your OTP code is: "+event.Otp+". It is valid for 5 minutes.")
+				},
+			)
+
+			go consumer.Start(context.Background())
+			logger.Info("Kafka register consumer started. topic=%s group=%s brokers=%v", topic, groupID, brokers)
+		}
 	}
 
 	handler.NewAuthenticationHandler(authController, tokenGenerator).RouterList(root)

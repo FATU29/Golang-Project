@@ -13,6 +13,7 @@ import (
 	"Authentication_Service/pkg/email"
 	model2 "Authentication_Service/pkg/email/model"
 	"Authentication_Service/pkg/google"
+	"Authentication_Service/pkg/kafka"
 	"context"
 	"errors"
 	"fmt"
@@ -30,6 +31,7 @@ type AuthenticationService struct {
 	OtpRepository            _interface.IOtpRepository
 	TokenGenerator           serviceInterface.ITokenGenerator
 	RefreshTokenRepository   _interface.IRefreshTokenRepository
+	RegisterEventProducer    kafka.RegisterEventProducer
 	GoogleOAuth2             google.OAuth2Client
 }
 
@@ -218,18 +220,39 @@ func (authentication *AuthenticationService) Register(c context.Context, user *r
 		return nil, businessErr
 	}
 
-	businessErr = authentication.sendOtpEmail(user, otp, email)
+	businessErr = authentication.enqueueOtpEmail(c, user, otp, email)
 	if businessErr != nil {
 		return nil, businessErr
 	}
 
 	hashedPassword := utils.HashPassword(user.Password)
-	businessErr = authentication.createOrUpdateUser(c, user, hashedPassword, currentUser)
+	userAfterSave, businessErr := authentication.createOrUpdateUser(c, user, hashedPassword, currentUser)
 	if businessErr != nil {
 		return nil, businessErr
 	}
 
-	return mapper.FromUserModelToRegisterRes(currentUser), nil
+	return mapper.FromUserModelToRegisterRes(userAfterSave), nil
+}
+
+func (authentication *AuthenticationService) enqueueOtpEmail(ctx context.Context, user *request.RegisterReqDto, otp string, emailStrategy email.IEmailStrategy) *model.BusinessError {
+	if authentication.RegisterEventProducer == nil {
+		return authentication.sendOtpEmail(user, otp, emailStrategy)
+	}
+
+	event := kafka.RegisterOTPEvent{
+		Email:       user.Email,
+		Firstname:   user.Firstname,
+		Lastname:    user.Lastname,
+		Otp:         otp,
+		RequestedAt: time.Now().UTC(),
+	}
+
+	if err := authentication.RegisterEventProducer.PublishRegisterOTP(ctx, event); err != nil {
+		logger.Warn("register: failed to publish OTP event for %s, fallback to sync email: %v", user.Email, err)
+		return authentication.sendOtpEmail(user, otp, emailStrategy)
+	}
+
+	return nil
 }
 
 func (authentication *AuthenticationService) validateUserForRegistration(ctx context.Context, email string) (*model.User, *model.BusinessError) {
@@ -299,13 +322,14 @@ func (authentication *AuthenticationService) sendOtpEmail(user *request.Register
 	}
 
 	if err := email.SendEmail(to, "Your OTP Code", "Your OTP code is: "+otp+". It is valid for 5 minutes."); err != nil {
+		logger.Errorf("failed to send OTP email: %v", err)
 		return model.NewBusinessError(http.StatusInternalServerError, err.Error())
 	}
 
 	return nil
 }
 
-func (authentication *AuthenticationService) createOrUpdateUser(ctx context.Context, user *request.RegisterReqDto, hashedPassword string, currentUser *model.User) *model.BusinessError {
+func (authentication *AuthenticationService) createOrUpdateUser(ctx context.Context, user *request.RegisterReqDto, hashedPassword string, currentUser *model.User) (*model.User, *model.BusinessError) {
 	if currentUser != nil {
 		return authentication.updateExistingUser(ctx, user, hashedPassword, currentUser)
 	}
@@ -313,25 +337,25 @@ func (authentication *AuthenticationService) createOrUpdateUser(ctx context.Cont
 	return authentication.createNewUser(ctx, user, hashedPassword)
 }
 
-func (authentication *AuthenticationService) updateExistingUser(ctx context.Context, user *request.RegisterReqDto, hashedPassword string, currentUser *model.User) *model.BusinessError {
+func (authentication *AuthenticationService) updateExistingUser(ctx context.Context, user *request.RegisterReqDto, hashedPassword string, currentUser *model.User) (*model.User, *model.BusinessError) {
 	existingUser, errRecheck := authentication.UserRepository.FindByEmail(user.Email)
 	if errRecheck != nil {
 		if errors.Is(errRecheck, gorm.ErrRecordNotFound) {
-			return model.NewBusinessError(http.StatusInternalServerError, "user was deleted during registration")
+			return nil, model.NewBusinessError(http.StatusInternalServerError, "user was deleted during registration")
 		}
-		return model.NewBusinessError(http.StatusInternalServerError, "failed to recheck user before update")
+		return nil, model.NewBusinessError(http.StatusInternalServerError, "failed to recheck user before update")
 	}
 
 	if existingUser == nil {
-		return model.NewBusinessError(http.StatusInternalServerError, "user was deleted during registration")
+		return nil, model.NewBusinessError(http.StatusInternalServerError, "user was deleted during registration")
 	}
 
 	if existingUser.IsActive == constant.ACTIVE {
-		return config.UserAlreadyExists
+		return nil, config.UserAlreadyExists
 	}
 
 	if existingUser.IsActive != constant.NO_ACTIVE {
-		return model.NewBusinessError(http.StatusInternalServerError, "invalid user status for update")
+		return nil, model.NewBusinessError(http.StatusInternalServerError, "invalid user status for update")
 	}
 
 	existingUser.Password = hashedPassword
@@ -339,14 +363,15 @@ func (authentication *AuthenticationService) updateExistingUser(ctx context.Cont
 	existingUser.Lastname = user.Lastname
 	existingUser.IsActive = constant.NO_ACTIVE
 
-	if _, errUpdate := authentication.UserRepository.Update(existingUser); errUpdate != nil {
-		return model.NewBusinessError(http.StatusInternalServerError, errUpdate.Error())
+	updatedUser, errUpdate := authentication.UserRepository.Update(existingUser)
+	if errUpdate != nil {
+		return nil, model.NewBusinessError(http.StatusInternalServerError, errUpdate.Error())
 	}
 
-	return nil
+	return updatedUser, nil
 }
 
-func (authentication *AuthenticationService) createNewUser(ctx context.Context, user *request.RegisterReqDto, hashedPassword string) *model.BusinessError {
+func (authentication *AuthenticationService) createNewUser(ctx context.Context, user *request.RegisterReqDto, hashedPassword string) (*model.User, *model.BusinessError) {
 	userModel := &model.User{
 		Id:        uuid.New().String(),
 		Email:     user.Email,
@@ -358,11 +383,11 @@ func (authentication *AuthenticationService) createNewUser(ctx context.Context, 
 
 	_, errCreate := authentication.UserRepository.Create(userModel)
 	if errCreate == nil {
-		return nil
+		return userModel, nil
 	}
 
 	if !errors.Is(errCreate, gorm.ErrDuplicatedKey) {
-		return model.NewBusinessError(http.StatusInternalServerError, errCreate.Error())
+		return nil, model.NewBusinessError(http.StatusInternalServerError, errCreate.Error())
 	}
 
 	return authentication.handleDuplicateKeyError(ctx, user, hashedPassword)
@@ -386,6 +411,7 @@ func (authentication *AuthenticationService) ResendOtp(ctx context.Context, req 
 	}
 	to := model2.To{Email: req.Email, Name: req.Email}
 	if err := emailStrategy.SendEmail(to, "Your OTP Code", "Your OTP code is: "+otp+". It is valid for 5 minutes."); err != nil {
+		logger.Errorf("failed to send OTP email: %v", err)
 		return nil, model.NewBusinessError(http.StatusInternalServerError, err.Error())
 	}
 	return &response.ResendOtpResDto{IsResent: true}, nil
@@ -411,6 +437,7 @@ func (authentication *AuthenticationService) ForgotPassword(ctx context.Context,
 	}
 	to := model2.To{Email: req.Email, Name: req.Email}
 	if err := emailStrategy.SendEmail(to, "Password Reset OTP", "Your password reset OTP is: "+otp+". It is valid for 10 minutes."); err != nil {
+		logger.Errorf("failed to send forgot password email: %v", err)
 		return nil, model.NewBusinessError(http.StatusInternalServerError, err.Error())
 	}
 	return &response.ForgotPasswordResDto{Sent: true}, nil
@@ -455,21 +482,21 @@ func (authentication *AuthenticationService) ChangePassword(ctx context.Context,
 	return &response.ChangePasswordResDto{Success: true}, nil
 }
 
-func (authentication *AuthenticationService) handleDuplicateKeyError(ctx context.Context, user *request.RegisterReqDto, hashedPassword string) *model.BusinessError {
+func (authentication *AuthenticationService) handleDuplicateKeyError(ctx context.Context, user *request.RegisterReqDto, hashedPassword string) (*model.User, *model.BusinessError) {
 	existingUser, errFind := authentication.UserRepository.FindByEmail(user.Email)
 	if errFind != nil {
 		if errors.Is(errFind, gorm.ErrRecordNotFound) {
-			return model.NewBusinessError(http.StatusInternalServerError, "user creation failed but user not found")
+			return nil, model.NewBusinessError(http.StatusInternalServerError, "user creation failed but user not found")
 		}
-		return model.NewBusinessError(http.StatusInternalServerError, "failed to find user after duplicate key error")
+		return nil, model.NewBusinessError(http.StatusInternalServerError, "failed to find user after duplicate key error")
 	}
 
 	if existingUser == nil {
-		return model.NewBusinessError(http.StatusInternalServerError, "user creation failed but user is nil")
+		return nil, model.NewBusinessError(http.StatusInternalServerError, "user creation failed but user is nil")
 	}
 
 	if existingUser.IsActive == constant.ACTIVE {
-		return config.UserAlreadyExists
+		return nil, config.UserAlreadyExists
 	}
 
 	existingUser.Password = hashedPassword
@@ -477,11 +504,12 @@ func (authentication *AuthenticationService) handleDuplicateKeyError(ctx context
 	existingUser.Lastname = user.Lastname
 	existingUser.IsActive = constant.NO_ACTIVE
 
-	if _, errUpdate := authentication.UserRepository.Update(existingUser); errUpdate != nil {
-		return model.NewBusinessError(http.StatusInternalServerError, errUpdate.Error())
+	updatedUser, errUpdate := authentication.UserRepository.Update(existingUser)
+	if errUpdate != nil {
+		return nil, model.NewBusinessError(http.StatusInternalServerError, errUpdate.Error())
 	}
 
-	return nil
+	return updatedUser, nil
 }
 
 func (authentication *AuthenticationService) Introspect(ctx context.Context, req *request.IntrospectReqDto) (*response.IntrospectResDto, *model.BusinessError) {
@@ -490,11 +518,15 @@ func (authentication *AuthenticationService) Introspect(ctx context.Context, req
 		return &response.IntrospectResDto{Active: false}, nil
 	}
 	return &response.IntrospectResDto{
-		Active: true,
-		Sub:    result.User.Id,
-		Exp:    result.Exp.Unix(),
-		Iat:    result.Iat.Unix(),
-		Email:  result.User.Email,
+		Active:    true,
+		Sub:       result.User.Id,
+		Exp:       result.Exp.Unix(),
+		Iat:       result.Iat.Unix(),
+		Email:     result.User.Email,
+		Firstname:  result.User.Firstname,
+		Lastname:   result.User.Lastname,
+		Avatar:     result.User.Avatar,
+		CoverImage: result.User.CoverImage,
 	}, nil
 }
 

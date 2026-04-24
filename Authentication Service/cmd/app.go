@@ -5,7 +5,6 @@ import (
 	"Authentication_Service/internal/config/customValidation"
 	"Authentication_Service/internal/middleware"
 	"fmt"
-	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -37,12 +36,11 @@ func (app *App) Run() error {
 	app.Re.Use(middleware.RequestIDMiddleware())
 
 	app.Re.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:3000"},
+		AllowOrigins:     []string{app.Cfg.FrontendURL},
 		AllowMethods:     []string{"PUT", "PATCH", "GET", "POST", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "X-Request-ID", "Authorization", "Content-Type"},
 		ExposeHeaders:    []string{"Content-Length", "X-Request-ID"},
 		AllowCredentials: true,
-		MaxAge:           12 * time.Hour,
 	}))
 
 	// Logger middleware with request ID tracking

@@ -70,6 +70,8 @@ func (a *AuthenticationRepository) ValidateAndConsumeSSOState(ctx context.Contex
 	if err != nil {
 		return false, err
 	}
-	_ = a.Rd.Del(ctx, key).Err()
+	// Instead of immediate deletion, we set a very short expiration (5s)
+	// to handle concurrent requests from frontend frameworks like Next.js in Strict Mode.
+	_ = a.Rd.Expire(ctx, key, 5*time.Second).Err()
 	return ok == "1", nil
 }

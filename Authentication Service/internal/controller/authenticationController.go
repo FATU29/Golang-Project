@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"Authentication_Service/internal/config"
 	"Authentication_Service/internal/constant"
 	"Authentication_Service/internal/dto/common"
 	"Authentication_Service/internal/dto/request"
@@ -17,6 +18,7 @@ import (
 type AuthenticationController struct {
 	AuthenticationService _interface.IAuthenticationService
 	Email                 email.IEmailStrategy
+	Cfg                   *config.Config
 }
 
 // ResendOtpController godoc
@@ -217,25 +219,46 @@ func (authentication *AuthenticationController) LogoutController(c *gin.Context)
 	var req request.LogoutReqDto
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, common.ApiResponse[any]{
-			Code:    http.StatusBadRequest,
-			Message: err.Error(),
+		// Ignore binding error if it's just missing fields, we'll check cookies
+	}
+
+	if req.RefreshToken == "" {
+		if cookieToken, err := c.Cookie("refreshToken"); err == nil {
+			req.RefreshToken = cookieToken
+		}
+	}
+
+	if req.RefreshToken == "" {
+		c.JSON(http.StatusUnauthorized, common.ApiResponse[any]{
+			Code:    http.StatusUnauthorized,
+			Message: "missing refresh token",
 		})
 		return
 	}
 
 	res, businessErr := authentication.AuthenticationService.Logout(c.Request.Context(), &req)
 
+	// Always clear refresh token cookie on logout attempt
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie("refreshToken", "", -1, "/", "", false, true)
+
 	if businessErr != nil {
+		// If session is not found, we consider logout successful as the session is already gone
+		if businessErr.StatusCode == http.StatusNotFound {
+			c.JSON(http.StatusOK, common.ApiResponse[any]{
+				Code:    http.StatusOK,
+				Message: "Logout successful (session already gone)",
+				Data:    nil,
+			})
+			return
+		}
+
 		c.JSON(businessErr.StatusCode, common.ApiResponse[any]{
 			Code:    businessErr.StatusCode,
 			Message: businessErr.Message,
 		})
 		return
 	}
-
-	// Clear refresh token cookie
-	c.SetCookie("refreshToken", "", -1, "/", "", false, true)
 
 	c.JSON(http.StatusOK, common.ApiResponse[*response.LogoutResDto]{
 		Code:    http.StatusOK,
@@ -383,12 +406,12 @@ func (authentication *AuthenticationController) GoogleSSORedirectController(c *g
 
 // GoogleSSOCallbackController godoc
 // @Summary      Google SSO callback
-// @Description  OAuth2 callback: validates state, exchanges code with Google, finds or creates user, returns access and refresh tokens.
+// @Description  OAuth2 callback: validates state, exchanges code with Google, finds or creates user, returns access token and sets refresh token in HTTP-only cookie.
 // @Tags         auth
 // @Param        state  query  string  true   "State from redirect (CSRF)"
 // @Param        code  query  string  true   "Authorization code from Google"
 // @Produce      json
-// @Success      200  {object}  common.ApiResponse[response.LoginResDto]
+// @Success      200  {object}  common.ApiResponse[response.AccessTokenDto]
 // @Failure      400  {object}  common.ApiErrorResponse  "Missing or invalid state/code"
 // @Failure      500  {object}  common.ApiErrorResponse
 // @Router       /auth/google/callback [get]
@@ -409,7 +432,16 @@ func (authentication *AuthenticationController) GoogleSSOCallbackController(c *g
 		c.JSON(businessErr.StatusCode, common.ApiResponse[any]{Code: businessErr.StatusCode, Message: businessErr.Message})
 		return
 	}
-	c.JSON(http.StatusOK, common.ApiResponse[*response.LoginResDto]{
-		Code: http.StatusOK, Message: "Signed in with Google", Data: res,
+
+	c.SetSameSite(http.SameSiteLaxMode)
+	c.SetCookie("refreshToken", res.RefreshToken, constant.REFRESH_TOKEN_EXPIRE*60, "/", "", false, true)
+	c.SetCookie("accessToken", res.AccessToken, constant.ACCESS_TOKEN_EXPIRE*60, "/", "", false, false)
+
+	c.JSON(http.StatusOK, common.ApiResponse[*response.AccessTokenDto]{
+		Code:    http.StatusOK,
+		Message: "Signed in with Google",
+		Data: &response.AccessTokenDto{
+			AccessToken: res.AccessToken,
+		},
 	})
 }

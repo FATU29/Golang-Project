@@ -10,7 +10,8 @@ func UserFromUserResDto(userResDto *model.User) *request.UserResDto {
 		Id:        userResDto.Id,
 		Email:     userResDto.Email,
 		Lastname:  userResDto.Lastname,
-		Firstname: userResDto.Firstname,
-		Avatar:    userResDto.Avatar,
+		Firstname:  userResDto.Firstname,
+		Avatar:     userResDto.Avatar,
+		CoverImage: userResDto.CoverImage,
 	}
 }

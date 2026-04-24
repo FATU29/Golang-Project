@@ -16,22 +16,31 @@ const ContextKeyUser = "user"
 func RequireAuth(tokenGenerator _interface.ITokenGenerator) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		auth := c.GetHeader("Authorization")
-		if auth == "" {
+		var token string
+
+		if auth != "" {
+			parts := strings.SplitN(auth, " ", 2)
+			if len(parts) == 2 && strings.EqualFold(parts[0], "Bearer") {
+				token = parts[1]
+			}
+		}
+
+		// If no Bearer token, check for accessToken cookie
+		if token == "" {
+			if cookieToken, err := c.Cookie("accessToken"); err == nil {
+				token = cookieToken
+			}
+		}
+
+		if token == "" {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, common.ApiResponse[any]{
 				Code:    http.StatusUnauthorized,
-				Message: "authorization header required",
+				Message: "authorization required",
 			})
 			return
 		}
-		parts := strings.SplitN(auth, " ", 2)
-		if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, common.ApiResponse[any]{
-				Code:    http.StatusUnauthorized,
-				Message: "invalid authorization format",
-			})
-			return
-		}
-		user, err := tokenGenerator.ValidateToken(parts[1])
+
+		user, err := tokenGenerator.ValidateToken(token)
 		if err != nil {
 			code := http.StatusUnauthorized
 			if err.Error() == "token has expired" {

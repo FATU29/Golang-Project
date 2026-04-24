@@ -13,6 +13,6 @@ const (
 	ChangePassword = "/change-password"
 	Introspect     = "/introspect"
 
-	GoogleSSO        = "/google"
+	GoogleSSO         = "/google"
 	GoogleSSOCallback = "/google/callback"
 )

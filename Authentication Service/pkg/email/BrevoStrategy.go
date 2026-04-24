@@ -86,8 +86,10 @@ func (b *BrevoEmail) SendEmail(to model.To, subject string, body string) error {
 
 	if resp.StatusCode >= 400 {
 		bodyBytes, _ := io.ReadAll(resp.Body)
-		fmt.Printf("Brevo Error Detail: % s\n", string(bodyBytes))
-		return fmt.Errorf("brevo api error: %s", string(bodyBytes))
+		errorMsg := string(bodyBytes)
+		logger.Errorf("Brevo Error Detail: %s", errorMsg)
+		fmt.Printf("Brevo Error Detail: %s\n", errorMsg)
+		return fmt.Errorf("brevo api error: %s", errorMsg)
 	}
 
 	// 6. Check the response status
